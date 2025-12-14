@@ -20,17 +20,15 @@ echo "Setting up Firebase Functions environment variables..."
 # Get the current project ID
 PROJECT_ID=$(firebase use | grep 'active project' | sed 's/.*: \(.*\)/\1/')
 
-# Configure Firebase Functions
-firebase functions:config:set firestore.database_id=rclhelpdb project.id=your-project-id
+# Configure Firebase Functions with the project ID
+firebase functions:config:set project.id="$PROJECT_ID"
 
 echo "Firebase Functions configured with:"
 echo "  - Project ID: $PROJECT_ID"
-echo "  - Firestore Database ID: rclhelpdb"
+echo "  - Firestore Database: (default)"
 
 # Deploy the functions
 echo "Deploying functions..."
 firebase deploy --only functions
 
 echo "Done!"
-
-your-project-id
