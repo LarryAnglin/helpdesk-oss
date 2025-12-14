@@ -26,10 +26,6 @@ const TICKETS_COLLECTION = 'tickets';
 // Helper function to get current user's tenant ID
 const getCurrentUserTenantId = async (_userId: string): Promise<string | null> => {
   try {
-    // Since all users are already assigned to the default tenant, return it directly
-    // This avoids permission issues during ticket creation
-    const DEFAULT_TENANT_ID = 'CVnhIgM8Hy1FuuN0JUwr';
-    
     // Try to get from user's custom claims first
     const currentUser = auth.currentUser;
     if (currentUser) {
@@ -38,14 +34,13 @@ const getCurrentUserTenantId = async (_userId: string): Promise<string | null> =
         return idTokenResult.claims.tenantId as string;
       }
     }
-    
-    // Fallback to known default tenant ID
-    console.log('Using default tenant ID for ticket creation');
-    return DEFAULT_TENANT_ID;
+
+    // No tenant ID found - user needs to be assigned to a tenant
+    console.warn('No tenant ID found for user. User must be assigned to a tenant.');
+    return null;
   } catch (error) {
     console.error('Error getting user tenant ID:', error);
-    // Fallback to default tenant
-    return 'CVnhIgM8Hy1FuuN0JUwr';
+    return null;
   }
 };
 
