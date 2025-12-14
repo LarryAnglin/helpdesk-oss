@@ -1,0 +1,676 @@
+rules_version = '2';
+// Updated for tenant migration support
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'company_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'system_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin');
+    }
+
+    function isAdminSafe() {
+      // For write operations, be more strict and only allow if user doc exists and is admin
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'company_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'system_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin');
+    }
+
+    function isTech() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tech';
+    }
+
+    function isTechOrAdmin() {
+      return isTech() || isAdmin();
+    }
+
+    function isTicketSubmitter(ticketId) {
+      let ticket = get(/databases/$(database)/documents/tickets/$(ticketId)).data;
+      return isAuthenticated() && ticket.submitterId == request.auth.uid;
+    }
+
+    function isTicketParticipant(ticketId) {
+      let ticket = get(/databases/$(database)/documents/tickets/$(ticketId)).data;
+      let participants = ticket.participants;
+
+      return isAuthenticated() && participantExists(participants);
+    }
+
+    // Helper function to check if user is in participants array - non-recursive
+    function participantExists(participants) {
+      // Loop through up to 10 participants (limitation of Firestore rules)
+      return participants.size() > 0 && (
+        participants[0].userId == request.auth.uid ||
+        (participants.size() > 1 && participants[1].userId == request.auth.uid) ||
+        (participants.size() > 2 && participants[2].userId == request.auth.uid) ||
+        (participants.size() > 3 && participants[3].userId == request.auth.uid) ||
+        (participants.size() > 4 && participants[4].userId == request.auth.uid) ||
+        (participants.size() > 5 && participants[5].userId == request.auth.uid) ||
+        (participants.size() > 6 && participants[6].userId == request.auth.uid) ||
+        (participants.size() > 7 && participants[7].userId == request.auth.uid) ||
+        (participants.size() > 8 && participants[8].userId == request.auth.uid) ||
+        (participants.size() > 9 && participants[9].userId == request.auth.uid)
+      );
+    }
+
+    // Check if the update is only adding a reply or changing status (not changing other core ticket fields)
+    function isAddingReplyOnlyOrStatus() {
+      let existingData = resource.data;
+      let newData = request.resource.data;
+
+      // Allow updates if they're adding replies, updating timestamps, or changing status/priority
+      // Core immutable fields should not change
+      return existingData.title == newData.title &&
+             existingData.description == newData.description &&
+             existingData.location == newData.location &&
+             existingData.isOnVpn == newData.isOnVpn &&
+             existingData.computer == newData.computer &&
+             existingData.submitterId == newData.submitterId &&
+             // Allow assignee changes for assignment updates
+             // Allow status and priority changes for regular users
+             // Allow relationship fields for tech/admin operations
+             (existingData.assigneeId == newData.assigneeId ||
+              (!('assigneeId' in existingData) && !('assigneeId' in newData)));
+    }
+
+    // Check if user can access a specific ticket (for time tracking)
+    function canAccessTicket(ticketId) {
+      return exists(/databases/$(database)/documents/tickets/$(ticketId)) &&
+             (isTicketSubmitter(ticketId) || isTicketParticipant(ticketId) || isTechOrAdmin());
+    }
+
+    // Tenant-related helper functions
+    function isSystemAdmin() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'system_admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin');
+    }
+
+    function isTenantMember(tenantId) {
+      return exists(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)) &&
+             get(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)).data.status == 'active';
+    }
+
+    function isTenantOwner(tenantId) {
+      return exists(/databases/$(database)/documents/tenants/$(tenantId)) &&
+             get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid;
+    }
+
+    function isTenantAdmin(tenantId) {
+      return isTenantOwner(tenantId) ||
+             (exists(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)) &&
+              (get(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)).data.role == 'admin' ||
+               get(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)).data.role == 'owner') &&
+              get(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)).data.status == 'active');
+    }
+
+    function getCurrentUserTenant() {
+      // This is a simplified approach - in practice, you'd get this from the user's context
+      // For now, we'll assume it's passed in custom claims or determined by the first active tenant
+      return request.auth.token.tenantId;
+    }
+
+    function hasSameTenant(documentTenantId) {
+      // Super admins can access everything, other admins can access across tenants, others must match tenant
+      return isSystemAdmin() || isAdmin() || documentTenantId == getCurrentUserTenant();
+    }
+
+    // By default, deny all read and write operations
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Regular users can read and update their own profile
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+
+      // Admins and techs can read all user profiles (needed for assignments and user management)
+      allow read: if isTechOrAdmin();
+
+      // Only admins can create or delete user profiles
+      allow create, delete: if isAdmin();
+    }
+
+    // Allow collection queries on users for admins and techs
+    // Also allow authenticated users to read users collection for auto-assignment
+    // TODO: Move auto-assignment to server-side for better security
+    match /users {
+      allow list: if isTechOrAdmin() || isAuthenticated();
+    }
+
+    // Tickets collection
+    match /tickets/{ticketId} {
+      // Allow read access to ticket submitter, participants, or tech/admin users within same tenant
+      allow read: if (isTicketSubmitter(ticketId) || isTicketParticipant(ticketId) || isTechOrAdmin()) &&
+                     hasSameTenant(resource.data.tenantId);
+
+      // Allow authenticated users to create new tickets
+      allow create: if request.auth != null &&
+                    request.resource.data.submitterId == request.auth.uid;
+
+      // Allow updates by tech/admin users or ticket participants adding replies within same tenant
+      allow update: if hasSameTenant(resource.data.tenantId) &&
+                       (isTechOrAdmin() ||
+                        (isTicketSubmitter(ticketId) && isAddingReplyOnlyOrStatus()) ||
+                        (isTicketParticipant(ticketId) && isAddingReplyOnlyOrStatus()));
+
+      // Only tech/admin users can delete tickets within same tenant
+      allow delete: if isTechOrAdmin() && hasSameTenant(resource.data.tenantId);
+    }
+
+    // Allow collection queries on tickets
+    match /tickets {
+      // Allow all authenticated users to perform list operations
+      // The actual filtering happens at the document level
+      allow list: if isAuthenticated();
+    }
+    // Settings collection - only admin access
+    match /settings/{configId} {
+      // Must be able to read config before authentication
+      allow read: if true;
+
+      // Only admins can modify settings
+      allow write: if isAdmin();
+    }
+
+    // Config collection - for app configuration (email provider, etc.)
+    match /config/{configId} {
+      // Admins can read and write config
+      allow read, write: if isAdmin();
+    }
+
+    // System collection - for setup and system configuration
+    match /system/{systemDocId} {
+      // Allow read access to check setup status during initial load
+      allow read: if true;
+
+      // Only admins can modify system configuration
+      allow write: if isAdminSafe();
+    }
+
+    // Mail collection - for Firebase Extensions Trigger Email
+    match /mail/{mailId} {
+      // Only authenticated users can create email documents
+      allow create: if isAuthenticated();
+
+      // Only the system can read and update mail documents (for delivery status)
+      allow read, update: if false; // Extensions handle this
+
+      // No one can delete mail documents (handled by extensions)
+      allow delete: if false;
+    }
+
+    // FAQs collection
+    match /faqs/{faqId} {
+      // All users can read FAQs (needed for self-help system during initial load)
+      allow read: if true;
+
+      // Only admins can create, update, or delete FAQs
+      allow create, update, delete: if isAdminSafe();
+    }
+
+    // Allow collection queries on FAQs for all users
+    match /faqs {
+      allow list: if true;
+    }
+
+    // Common solutions collection
+    match /commonSolutions/{solutionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Welcome links collection
+    match /welcomeLinks/{linkId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Ticket insights collection
+    match /ticketInsights/{insightId} {
+      // Only admins and the AI system can read ticket insights
+      allow read: if isAdmin();
+
+      // Only the system (Cloud Functions) can create, update, or delete insights
+      allow create, update, delete: if false; // Only server-side functions can modify
+    }
+
+    // Allow collection queries on ticket insights for admins only
+    match /ticketInsights {
+      allow list: if isAdmin();
+    }
+
+    // Knowledge Sources collection
+    match /knowledgeSources/{sourceId} {
+      // Only admins can manage knowledge sources
+      allow read, update, delete: if isAdmin() && hasSameTenant(resource.data.tenantId);
+      allow create: if isAdmin() && hasSameTenant(request.resource.data.tenantId);
+    }
+
+    // Allow collection queries on knowledge sources for admins only
+    match /knowledgeSources {
+      allow list: if isAdmin();
+    }
+
+    // Knowledge Content collection
+    match /knowledgeContent/{contentId} {
+      // Only admins and the AI system can read knowledge content (within same tenant)
+      allow read: if isAdmin() && hasSameTenant(resource.data.tenantId);
+
+      // Only the system (Cloud Functions) can create, update, or delete content
+      allow create, update, delete: if false; // Only server-side functions can modify
+    }
+
+    // Allow collection queries on knowledge content for admins only
+    match /knowledgeContent {
+      allow list: if isAdmin();
+    }
+
+    // User preferences collection
+    match /userPreferences/{userId} {
+      // Users can read and update their own preferences
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Admins can read all user preferences
+      allow read: if isAdmin();
+    }
+
+    // Custom fields collection
+    match /customFields/{fieldId} {
+      // All authenticated users can read custom fields (needed for forms)
+      allow read: if isAuthenticated();
+
+      // Only admins can create, update, or delete custom fields
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Allow collection queries on custom fields for authenticated users
+    match /customFields {
+      allow list: if isAuthenticated();
+    }
+
+    // Default form fields collection
+    match /defaultFormFields/{contextId} {
+      // All authenticated users can read default fields (needed for forms)
+      allow read: if isAuthenticated();
+
+      // Only admins can create, update, or delete default fields
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Allow collection queries on default form fields for authenticated users
+    match /defaultFormFields {
+      allow list: if isAuthenticated();
+    }
+
+    // Time tracking collections
+    match /timeCategories/{categoryId} {
+      // All authenticated users can read time categories within their tenant
+      allow read: if isAuthenticated() && hasSameTenant(resource.data.tenantId);
+
+      // Only admins can create, update, or delete time categories within their tenant
+      allow create, update, delete: if isAdmin() && hasSameTenant(request.resource.data.tenantId);
+    }
+
+    // Allow collection queries on time categories for authenticated users
+    match /timeCategories {
+      allow list: if isAuthenticated();
+    }
+
+    match /timeEntries/{entryId} {
+      // Users can read their own time entries, or entries for tickets they have access to
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid ||
+                      canAccessTicket(resource.data.ticketId) ||
+                      isTechOrAdmin());
+
+      // Users can create time entries for tickets they have access to
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       canAccessTicket(request.resource.data.ticketId);
+
+      // Users can update their own time entries, techs/admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isTechOrAdmin());
+
+      // Users can delete their own time entries, techs/admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isTechOrAdmin());
+    }
+
+    // Allow collection queries on time entries for authenticated users
+    match /timeEntries {
+      allow list: if isAuthenticated();
+    }
+
+    match /timeSessions/{sessionId} {
+      // Users can read their own active time sessions
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Users can create their own time sessions
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       canAccessTicket(request.resource.data.ticketId);
+
+      // Users can update their own time sessions
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Users can delete their own time sessions
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Allow collection queries on time sessions for authenticated users
+    match /timeSessions {
+      allow list: if isAuthenticated();
+    }
+
+    match /timeTrackingConfig/{configId} {
+      // All authenticated users can read time tracking config
+      allow read: if isAuthenticated();
+
+      // Only admins can update time tracking config
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Allow collection queries on time tracking config for authenticated users
+    match /timeTrackingConfig {
+      allow list: if isAuthenticated();
+    }
+
+    // Ticket relationship collections
+    match /ticketRelationships/{relationshipId} {
+      // Users can read relationships for tickets they have access to within same tenant
+      allow read: if isAuthenticated() &&
+                     hasSameTenant(resource.data.tenantId) &&
+                     (canAccessTicket(resource.data.sourceTicketId) ||
+                      canAccessTicket(resource.data.targetTicketId));
+
+      // Only techs and admins can create, update, or delete relationships within same tenant
+      allow create, update, delete: if isTechOrAdmin() &&
+                                       hasSameTenant(request.resource.data.tenantId);
+    }
+
+    // Allow collection queries on ticket relationships for authenticated users
+    match /ticketRelationships {
+      allow list: if isAuthenticated();
+    }
+
+    // Ticket split history collection
+    match /ticketSplitHistory/{historyId} {
+      // Users can read split history for tickets they have access to
+      allow read: if isAuthenticated() &&
+                     canAccessTicket(resource.data.originalTicketId);
+
+      // Only techs and admins can create split history (system-managed)
+      allow create: if isTechOrAdmin();
+
+      // No updates or deletes allowed - history is immutable
+      allow update, delete: if false;
+    }
+
+    // Allow collection queries on ticket split history for authenticated users
+    match /ticketSplitHistory {
+      allow list: if isAuthenticated();
+    }
+
+    // Ticket merge history collection
+    match /ticketMergeHistory/{historyId} {
+      // Users can read merge history for tickets they have access to
+      allow read: if isAuthenticated() &&
+                     canAccessTicket(resource.data.primaryTicketId);
+
+      // Only techs and admins can create merge history (system-managed)
+      allow create: if isTechOrAdmin();
+
+      // No updates or deletes allowed - history is immutable
+      allow update, delete: if false;
+    }
+
+    // Allow collection queries on ticket merge history for authenticated users
+    match /ticketMergeHistory {
+      allow list: if isAuthenticated();
+    }
+
+    // Tenant management collections
+    match /tenants/{tenantId} {
+      // Users can read tenants they belong to OR admins can read all tenants
+      // Also allow authenticated users to read tenants for auto-assignment purposes
+      allow read: if isAuthenticated();
+
+      // System admins OR regular admins can create tenants
+      allow create: if isSystemAdmin() || isAdmin();
+
+      // Tenant owners, system admins, regular admins can update tenants
+      allow update: if isSystemAdmin() || isTenantOwner(tenantId) || isAdmin();
+
+      // System admins or regular admins can delete tenants
+      allow delete: if isSystemAdmin() || isAdmin();
+    }
+
+    // Allow collection queries on tenants for authenticated users
+    // Admins need this for migration and management
+    match /tenants {
+      allow list: if isAuthenticated();
+    }
+
+    // Tenant users collection
+    match /tenantUsers/{userTenantId} {
+      // Users can read their own tenant memberships
+      allow read: if isAuthenticated() &&
+                     resource.data.userId == request.auth.uid;
+
+      // Tenant admins OR regular admins can read all user memberships for their tenant
+      allow read: if isAuthenticated() &&
+                     (isTenantAdmin(resource.data.tenantId) || isAdmin());
+
+      // Tenant admins OR regular admins can add users to their tenant
+      allow create: if isAuthenticated() &&
+                       (isTenantAdmin(request.resource.data.tenantId) || isAdmin());
+
+      // Allow users to create their own tenant membership for auto-assignment
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.role == 'member' &&
+                       request.resource.data.status == 'active';
+
+      // Tenant admins OR regular admins can update user roles in their tenant
+      allow update: if isAuthenticated() &&
+                       (isTenantAdmin(resource.data.tenantId) || isAdmin());
+
+      // Tenant admins OR regular admins can remove users from their tenant
+      allow delete: if isAuthenticated() &&
+                       (isTenantAdmin(resource.data.tenantId) || isAdmin());
+    }
+
+    // Allow collection queries on tenant users for authenticated users
+    match /tenantUsers {
+      allow list: if isAuthenticated();
+    }
+
+    // Tenant invitations collection
+    match /tenantInvitations/{invitationId} {
+      // Anyone can read invitations sent to their email
+      allow read: if isAuthenticated() &&
+                     resource.data.email == request.auth.token.email;
+
+      // Tenant admins can read invitations for their tenant
+      allow read: if isAuthenticated() &&
+                     isTenantAdmin(resource.data.tenantId);
+
+      // Tenant admins can create invitations for their tenant
+      allow create: if isAuthenticated() &&
+                       isTenantAdmin(request.resource.data.tenantId);
+
+      // Users can update invitations sent to them (to accept)
+      allow update: if isAuthenticated() &&
+                       resource.data.email == request.auth.token.email;
+
+      // Tenant admins can update/delete invitations for their tenant
+      allow update, delete: if isAuthenticated() &&
+                               isTenantAdmin(resource.data.tenantId);
+    }
+
+    // Allow collection queries on tenant invitations for authenticated users
+    match /tenantInvitations {
+      allow list: if isAuthenticated();
+    }
+
+    // SMS preferences collection
+    match /smsPreferences/{preferenceId} {
+      // Users can read and update their own SMS preferences (preferenceId often matches userId)
+      allow read, write: if isAuthenticated() &&
+                            (resource.data.userId == request.auth.uid || preferenceId == request.auth.uid);
+
+      // Allow users to create their own SMS preferences
+      allow create: if isAuthenticated() &&
+                       (request.resource.data.userId == request.auth.uid || preferenceId == request.auth.uid);
+
+      // Admins can read all SMS preferences within their tenant
+      allow read: if isAdmin();
+    }
+
+    // Allow collection queries on SMS preferences for authenticated users
+    match /smsPreferences {
+      allow list: if isAuthenticated();
+    }
+
+    // User SMS preferences collection (global user SMS settings)
+    match /userSMSPreferences/{userId} {
+      // Users can read and update their own global SMS preferences
+      allow read, write: if isAuthenticated() && userId == request.auth.uid;
+
+      // Admins can read all user SMS preferences
+      allow read: if isAdmin();
+    }
+
+    // Allow collection queries on user SMS preferences for authenticated users
+    match /userSMSPreferences {
+      allow list: if isAuthenticated();
+    }
+
+    // SMS messages collection
+    match /smsMessages/{messageId} {
+      // Users can read SMS messages sent to them
+      allow read: if isAuthenticated() &&
+                     resource.data.recipientUserId == request.auth.uid;
+
+      // Allow system to create SMS messages (for notifications)
+      allow create: if isAuthenticated();
+
+      // Admins can read all SMS messages within their tenant
+      allow read: if isAdmin() && hasSameTenant(resource.data.tenantId);
+
+      // Only system can update/delete SMS messages
+      allow update, delete: if false; // Only server-side functions can modify
+    }
+
+    // Allow collection queries on SMS messages for authenticated users
+    match /smsMessages {
+      allow list: if isAuthenticated();
+    }
+
+    // Organizations collection
+    match /organizations/{organizationId} {
+      // Users can read organizations they belong to
+      allow read: if isAuthenticated() &&
+                     exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == organizationId;
+
+      // System admins and super admins can read all organizations
+      allow read: if isSystemAdmin();
+
+      // Only system admins and super admins can create organizations
+      allow create: if isSystemAdmin();
+
+      // Organization admins, system admins, and super admins can update their organization
+      allow update: if isAuthenticated() &&
+                       (isSystemAdmin() ||
+                        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == organizationId &&
+                         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization_admin' ||
+                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'system_admin' ||
+                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin')));
+
+      // Only system admins and super admins can delete organizations
+      allow delete: if isSystemAdmin();
+    }
+
+    // Allow collection queries on organizations for authenticated users
+    match /organizations {
+      allow list: if isAuthenticated();
+    }
+
+    // Timeline collections
+    match /timelines/{timelineId} {
+      // Allow all authenticated users to read timelines
+      allow read: if isAuthenticated();
+
+      // Allow authenticated users to create timelines
+      allow create: if isAuthenticated();
+
+      // Allow users to update their own timelines or admins/techs to update any
+      allow update: if isAuthenticated() &&
+                      (resource.data.createdBy == request.auth.uid || isTechOrAdmin());
+
+      // Allow users to delete their own timelines or admins to delete any
+      allow delete: if isAuthenticated() &&
+                      (resource.data.createdBy == request.auth.uid || isAdmin());
+    }
+
+    // Allow collection queries on timelines for authenticated users
+    match /timelines {
+      allow list: if isAuthenticated();
+    }
+
+    // Companies collection
+    match /companies/{companyId} {
+      // Users can read companies they belong to
+      allow read: if isAuthenticated() &&
+                     exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+
+      // Admins can read companies within their organization
+      allow read: if isAdmin();
+
+      // Organization admins, system admins, and super admins can create companies
+      allow create: if isAuthenticated() &&
+                       (isSystemAdmin() ||
+                        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization_admin'));
+
+      // Company admins, organization admins, system admins, and super admins can update their company
+      allow update: if isAuthenticated() &&
+                       (isSystemAdmin() ||
+                        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                         ((get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId &&
+                           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'company_admin') ||
+                          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization_admin')));
+
+      // Organization admins, system admins, and super admins can delete companies
+      allow delete: if isAuthenticated() &&
+                       (isSystemAdmin() ||
+                        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization_admin'));
+    }
+
+    // Allow collection queries on companies for authenticated users
+    match /companies {
+      allow list: if isAuthenticated();
+    }
+  }
+}

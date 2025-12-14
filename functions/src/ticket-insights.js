@@ -1,0 +1,341 @@
+/*
+ * Copyright (c) 2025 anglinAI All Rights Reserved
+ */
+
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const admin = require('firebase-admin');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Initialize Firebase Admin if it hasn't been initialized
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+// Initialize Firestore
+const db = admin.firestore();
+
+// Initialize Gemini AI - but defer config() call to avoid early initialization issues
+let genAI;
+let model;
+
+const initializeAI = () => {
+  if (!genAI) {
+    try {
+      // Note: functions.config() is deprecated in v2. Use environment variables directly.
+      const apiKey = process.env.GEMINI_API_KEY || '';
+      genAI = new GoogleGenerativeAI(apiKey);
+      model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    } catch (error) {
+      console.warn('Failed to initialize Gemini AI:', error.message);
+    }
+  }
+  return { genAI, model };
+};
+
+// Cloud Function to analyze tickets when they're closed
+const analyzeClosedTicket = onDocumentUpdated('tickets/{ticketId}', async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+    
+    // Check if ticket was just closed/resolved
+    const wasClosedOrResolved = (
+      (before.status !== 'Closed' && after.status === 'Closed') ||
+      (before.status !== 'Resolved' && after.status === 'Resolved')
+    );
+    
+    if (!wasClosedOrResolved) {
+      return null;
+    }
+    
+    // Check if AI insights are enabled
+    const settingsDoc = await db.collection('settings').doc('config').get();
+    const settings = settingsDoc.data();
+    
+    if (!settings?.aiSettings?.enabled || !settings?.aiSettings?.ticketInsightsEnabled || !settings?.aiSettings?.autoAnalyzeClosedTickets) {
+      console.log('AI ticket insights are disabled');
+      return null;
+    }
+    
+    console.log(`Analyzing closed ticket: ${context.params.ticketId}`);
+    
+    try {
+      // Build conversation history
+      const conversationHistory = buildConversationHistory(after);
+      
+      // Create prompt for analysis
+      const prompt = `Analyze this resolved help desk ticket and extract key information that would be helpful for answering similar questions in the future.
+
+Ticket Information:
+- Title: ${after.title}
+- Category: ${after.category || 'General'}
+- Priority: ${after.priority}
+- Description: ${after.description}
+
+Conversation History:
+${conversationHistory}
+
+Please extract and provide:
+1. A concise summary of the problem (2-3 sentences max)
+2. A clear summary of the solution that worked (3-4 sentences max)
+3. 5-8 relevant keywords that would help identify similar issues
+4. Any important patterns or insights that could help resolve similar issues faster
+
+Format your response as JSON with the following structure:
+{
+  "problem": "Clear description of the issue",
+  "solution": "Step-by-step solution that resolved the issue",
+  "keywords": ["keyword1", "keyword2", ...],
+  "insights": "Additional patterns or important notes"
+}`;
+
+      // Initialize AI if needed
+      const { model } = initializeAI();
+      if (!model) {
+        console.error('Gemini AI not properly configured, skipping analysis');
+        return null;
+      }
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      // Parse the JSON response
+      const analysis = parseAnalysisResponse(text);
+      if (!analysis) {
+        console.error('Failed to parse analysis response');
+        return null;
+      }
+
+      // Calculate resolution time
+      const resolutionTime = Math.floor(
+        (after.resolvedAt - after.createdAt) / (1000 * 60)
+      ); // in minutes
+
+      // Create the insight
+      const insight = {
+        ticketId: context.params.ticketId,
+        title: after.title,
+        problem: analysis.problem,
+        solution: analysis.solution + (analysis.insights ? '\n\nAdditional insights: ' + analysis.insights : ''),
+        category: after.category || 'General',
+        keywords: analysis.keywords,
+        priority: after.priority,
+        resolutionTime,
+        createdAt: admin.firestore.Timestamp.fromMillis(after.createdAt),
+        closedAt: admin.firestore.Timestamp.fromMillis(after.resolvedAt || Date.now()),
+        tokenCount: estimateTokenCount({
+          problem: analysis.problem,
+          solution: analysis.solution
+        }),
+        compactionLevel: 0
+      };
+
+      // Save to Firestore
+      await db.collection('ticketInsights').add(insight);
+      
+      console.log(`Successfully analyzed and saved insights for ticket ${context.params.ticketId}`);
+      
+      // Optional: Trigger pruning of old insights
+      await pruneOldInsights(settings.aiSettings?.insightRetentionDays || 90);
+      
+      return { success: true, ticketId: context.params.ticketId };
+    } catch (error) {
+      console.error('Error analyzing ticket:', error);
+      return null;
+    }
+  });
+
+// Helper function to build conversation history
+function buildConversationHistory(ticket) {
+  if (!ticket.replies || ticket.replies.length === 0) {
+    return 'No conversation history available.';
+  }
+
+  const history = ticket.replies
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map(reply => {
+      const date = new Date(reply.createdAt).toLocaleString();
+      const role = reply.isSupport ? 'Support' : 'User';
+      return `[${date}] ${role}: ${reply.content}`;
+    })
+    .join('\n');
+
+  return history;
+}
+
+// Helper function to parse AI response
+function parseAnalysisResponse(text) {
+  try {
+    // Try to extract JSON from the response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in response');
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!parsed.problem || !parsed.solution || !Array.isArray(parsed.keywords)) {
+      console.error('Missing required fields in parsed response');
+      return null;
+    }
+
+    return {
+      problem: parsed.problem.substring(0, 500),
+      solution: parsed.solution.substring(0, 1000),
+      keywords: parsed.keywords.slice(0, 10),
+      insights: parsed.insights?.substring(0, 500)
+    };
+  } catch (error) {
+    console.error('Error parsing analysis response:', error);
+    return null;
+  }
+}
+
+// Helper function to estimate token count
+function estimateTokenCount(data) {
+  const text = `${data.problem} ${data.solution}`;
+  return Math.ceil(text.length / 4);
+}
+
+// Helper function to prune old insights
+async function pruneOldInsights(daysToKeep) {
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffDate);
+
+    const oldInsights = await db.collection('ticketInsights')
+      .where('closedAt', '<', cutoffTimestamp)
+      .get();
+
+    if (oldInsights.empty) {
+      return;
+    }
+
+    const batch = db.batch();
+    oldInsights.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+    console.log(`Pruned ${oldInsights.size} old ticket insights`);
+  } catch (error) {
+    console.error('Error pruning old insights:', error);
+  }
+}
+
+// Scheduled function to compact older insights (runs daily)
+const compactOldInsights = onSchedule('every 24 hours', async (event) => {
+    try {
+      const settingsDoc = await db.collection('settings').doc('config').get();
+      const settings = settingsDoc.data();
+      
+      if (!settings?.aiSettings?.enabled || !settings?.aiSettings?.ticketInsightsEnabled) {
+        console.log('AI ticket insights are disabled');
+        return null;
+      }
+
+      const maxTokens = settings.aiSettings?.maxInsightTokens || 100000;
+      
+      // Get all insights ordered by date
+      const insights = await db.collection('ticketInsights')
+        .orderBy('closedAt', 'desc')
+        .get();
+
+      let totalTokens = 0;
+      const batch = db.batch();
+      let updateCount = 0;
+
+      insights.forEach(doc => {
+        const data = doc.data();
+        totalTokens += data.tokenCount;
+
+        // If we're over 80% of token limit, start compacting older insights
+        if (totalTokens > maxTokens * 0.8) {
+          const ageInDays = Math.floor((Date.now() - data.closedAt.toMillis()) / (1000 * 60 * 60 * 24));
+          
+          // Apply progressive compaction based on age
+          let newCompactionLevel = data.compactionLevel || 0;
+          if (ageInDays > 60 && newCompactionLevel < 2) {
+            newCompactionLevel = 2;
+          } else if (ageInDays > 30 && newCompactionLevel < 1) {
+            newCompactionLevel = 1;
+          }
+
+          if (newCompactionLevel > (data.compactionLevel || 0)) {
+            // Apply compaction
+            const compactedData = applyCompaction(data, newCompactionLevel);
+            batch.update(doc.ref, {
+              problem: compactedData.problem,
+              solution: compactedData.solution,
+              compactionLevel: newCompactionLevel,
+              tokenCount: estimateTokenCount({
+                problem: compactedData.problem,
+                solution: compactedData.solution
+              })
+            });
+            updateCount++;
+          }
+        }
+      });
+
+      if (updateCount > 0) {
+        await batch.commit();
+        console.log(`Compacted ${updateCount} ticket insights`);
+      }
+
+      return { success: true, compacted: updateCount };
+    } catch (error) {
+      console.error('Error compacting insights:', error);
+      return null;
+    }
+  });
+
+// Helper function to apply compaction
+function applyCompaction(insight, level) {
+  if (level === 0) {
+    return { problem: insight.problem, solution: insight.solution };
+  }
+
+  let compactedProblem = insight.problem;
+  let compactedSolution = insight.solution;
+
+  if (level === 1) {
+    // Moderate compaction
+    compactedProblem = extractKeyPoints(insight.problem, 100);
+    compactedSolution = extractKeyPoints(insight.solution, 150);
+  } else if (level >= 2) {
+    // High compaction
+    compactedProblem = extractKeyPoints(insight.problem, 50);
+    compactedSolution = extractKeyPoints(insight.solution, 75);
+  }
+
+  return { problem: compactedProblem, solution: compactedSolution };
+}
+
+// Helper function to extract key points
+function extractKeyPoints(text, maxWords) {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+  let result = '';
+  let wordCount = 0;
+
+  for (const sentence of sentences) {
+    const words = sentence.trim().split(/\s+/);
+    if (wordCount + words.length <= maxWords) {
+      result += sentence.trim() + '. ';
+      wordCount += words.length;
+    } else {
+      break;
+    }
+  }
+
+  return result.trim() || text.substring(0, maxWords * 5) + '...';
+}
+
+module.exports = {
+  analyzeClosedTicket,
+  compactOldInsights
+};

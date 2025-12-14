@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SendGrid Setup Guide - Help Desk</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #1976d2;
+      border-bottom: 3px solid #1976d2;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #1565c0;
+      margin-top: 40px;
+      border-left: 4px solid #1976d2;
+      padding-left: 15px;
+    }
+    h3 {
+      color: #1976d2;
+      margin-top: 25px;
+    }
+    .step {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .step-number {
+      display: inline-block;
+      background: #1976d2;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 30px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    code {
+      background: #e3f2fd;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.9em;
+    }
+    .warning {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .info {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .success {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    th {
+      background: #1976d2;
+      color: white;
+    }
+    tr:hover {
+      background: #f5f5f5;
+    }
+    a {
+      color: #1976d2;
+    }
+    .toc {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    .toc ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .toc li {
+      padding: 5px 0;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: #1976d2;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    .back-link:hover {
+      background: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <a href="javascript:window.close()" class="back-link">Close This Guide</a>
+
+  <h1>SendGrid Setup Guide</h1>
+
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#create-account">1. Create a SendGrid Account</a></li>
+      <li><a href="#verify-domain">2. Verify Your Domain</a></li>
+      <li><a href="#create-api-key">3. Create an API Key</a></li>
+      <li><a href="#configure-firebase">4. Configure Firebase Secrets</a></li>
+      <li><a href="#inbound-email">5. Set Up Inbound Email (Optional)</a></li>
+      <li><a href="#testing">6. Testing</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ul>
+  </div>
+
+  <h2 id="overview">Overview</h2>
+  <div class="step">
+    <p>SendGrid is an industry-leading email delivery platform that provides reliable email sending with excellent deliverability rates. This guide will walk you through setting up SendGrid for your Help Desk application.</p>
+
+    <div class="info">
+      <strong>What you'll need:</strong>
+      <ul>
+        <li>A SendGrid account (free tier available)</li>
+        <li>Access to your domain's DNS settings</li>
+        <li>Firebase CLI installed on your computer</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 id="create-account">1. Create a SendGrid Account</h2>
+  <div class="step">
+    <p><span class="step-number">1</span> Go to <a href="https://sendgrid.com" target="_blank">sendgrid.com</a> and click <strong>Start for Free</strong></p>
+
+    <p><span class="step-number">2</span> Complete the registration process with your email and company information</p>
+
+    <p><span class="step-number">3</span> Verify your email address by clicking the link SendGrid sends you</p>
+
+    <div class="info">
+      <strong>Free Tier:</strong> SendGrid offers 100 emails/day free forever, which is sufficient for most small help desks.
+    </div>
+  </div>
+
+  <h2 id="verify-domain">2. Verify Your Domain</h2>
+  <div class="step">
+    <p>Domain verification improves email deliverability and prevents your emails from going to spam.</p>
+
+    <p><span class="step-number">1</span> In the SendGrid dashboard, go to <strong>Settings</strong> &rarr; <strong>Sender Authentication</strong></p>
+
+    <p><span class="step-number">2</span> Click <strong>Authenticate Your Domain</strong></p>
+
+    <p><span class="step-number">3</span> Select your DNS host (or choose "Other" if not listed)</p>
+
+    <p><span class="step-number">4</span> Enter your domain name (e.g., <code>mail.yourdomain.com</code>)</p>
+
+    <p><span class="step-number">5</span> SendGrid will provide DNS records to add. You'll need to add these to your domain's DNS settings:</p>
+
+    <table>
+      <tr>
+        <th>Record Type</th>
+        <th>Purpose</th>
+        <th>Example</th>
+      </tr>
+      <tr>
+        <td>CNAME</td>
+        <td>DKIM Authentication (3 records)</td>
+        <td><code>s1._domainkey.yourdomain.com</code></td>
+      </tr>
+      <tr>
+        <td>CNAME</td>
+        <td>Return Path</td>
+        <td><code>em1234.yourdomain.com</code></td>
+      </tr>
+    </table>
+
+    <p><span class="step-number">6</span> After adding the DNS records, click <strong>Verify</strong> in SendGrid</p>
+
+    <div class="warning">
+      <strong>Note:</strong> DNS changes can take up to 48 hours to propagate, though usually it's much faster (15-30 minutes).
+    </div>
+  </div>
+
+  <h2 id="create-api-key">3. Create an API Key</h2>
+  <div class="step">
+    <p><span class="step-number">1</span> In the SendGrid dashboard, go to <strong>Settings</strong> &rarr; <strong>API Keys</strong></p>
+
+    <p><span class="step-number">2</span> Click <strong>Create API Key</strong></p>
+
+    <p><span class="step-number">3</span> Give it a name like <code>HelpDesk-Production</code></p>
+
+    <p><span class="step-number">4</span> Select <strong>Full Access</strong> or choose <strong>Restricted Access</strong> with these permissions:</p>
+    <ul>
+      <li>Mail Send: Full Access</li>
+      <li>Inbound Parse: Full Access (if using email replies)</li>
+    </ul>
+
+    <p><span class="step-number">5</span> Click <strong>Create & View</strong></p>
+
+    <div class="warning">
+      <strong>Important:</strong> Copy and save your API key now! SendGrid will only show it once. It looks like: <code>SG.xxxxxxxxxxxxxxxxxxxxxxxx</code>
+    </div>
+  </div>
+
+  <h2 id="configure-firebase">4. Configure Firebase Secrets</h2>
+  <div class="step">
+    <p>Now you need to store your SendGrid API key as a Firebase secret.</p>
+
+    <p><span class="step-number">1</span> Open a terminal and navigate to your project's <code>functions</code> directory</p>
+
+    <p><span class="step-number">2</span> Run the following command:</p>
+    <pre>firebase functions:secrets:set SENDGRID_API_KEY</pre>
+
+    <p><span class="step-number">3</span> When prompted, paste your SendGrid API key</p>
+
+    <p><span class="step-number">4</span> Deploy your functions to apply the changes:</p>
+    <pre>firebase deploy --only functions</pre>
+
+    <div class="success">
+      <strong>Done!</strong> Your Help Desk can now send emails via SendGrid.
+    </div>
+  </div>
+
+  <h2 id="inbound-email">5. Set Up Inbound Email (Optional)</h2>
+  <div class="step">
+    <p>If you want customers to reply to tickets via email, you need to set up SendGrid's Inbound Parse.</p>
+
+    <h3>Add MX Record</h3>
+    <p><span class="step-number">1</span> Add an MX record to your domain's DNS:</p>
+    <table>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Priority</th>
+        <th>Value</th>
+      </tr>
+      <tr>
+        <td>MX</td>
+        <td><code>mail</code> (or your subdomain)</td>
+        <td>10</td>
+        <td><code>mx.sendgrid.net</code></td>
+      </tr>
+    </table>
+
+    <h3>Configure Inbound Parse</h3>
+    <p><span class="step-number">2</span> In SendGrid, go to <strong>Settings</strong> &rarr; <strong>Inbound Parse</strong></p>
+
+    <p><span class="step-number">3</span> Click <strong>Add Host & URL</strong></p>
+
+    <p><span class="step-number">4</span> Configure:</p>
+    <ul>
+      <li><strong>Receiving Domain:</strong> <code>mail.yourdomain.com</code></li>
+      <li><strong>Destination URL:</strong> Your Firebase function URL:
+        <pre>https://us-central1-YOUR-PROJECT-ID.cloudfunctions.net/sendgridWebhook</pre>
+      </li>
+      <li><strong>Check:</strong> POST the raw, full MIME message</li>
+    </ul>
+
+    <p><span class="step-number">5</span> Click <strong>Add</strong></p>
+
+    <h3>Set Webhook Verification Key (Optional but Recommended)</h3>
+    <p><span class="step-number">6</span> For added security, set a webhook verification key:</p>
+    <pre>firebase functions:secrets:set SENDGRID_WEBHOOK_VERIFICATION_KEY</pre>
+    <p>Enter a strong random string when prompted.</p>
+  </div>
+
+  <h2 id="testing">6. Testing</h2>
+  <div class="step">
+    <h3>Test Outbound Email</h3>
+    <p><span class="step-number">1</span> Create a new ticket in your Help Desk</p>
+    <p><span class="step-number">2</span> Check that notification emails are sent to the configured admin email</p>
+
+    <h3>Test Inbound Email (if configured)</h3>
+    <p><span class="step-number">1</span> Reply to a ticket notification email</p>
+    <p><span class="step-number">2</span> Check that the reply appears in the ticket within a few seconds</p>
+
+    <h3>Check Logs</h3>
+    <p>If emails aren't working, check the Firebase Functions logs:</p>
+    <pre>firebase functions:log --only sendgridWebhook</pre>
+  </div>
+
+  <h2 id="troubleshooting">Troubleshooting</h2>
+  <div class="step">
+    <h3>Emails Not Sending</h3>
+    <table>
+      <tr>
+        <th>Problem</th>
+        <th>Solution</th>
+      </tr>
+      <tr>
+        <td>API key error</td>
+        <td>Verify the API key is correct: <code>firebase functions:secrets:access SENDGRID_API_KEY</code></td>
+      </tr>
+      <tr>
+        <td>Domain not verified</td>
+        <td>Check domain verification status in SendGrid dashboard</td>
+      </tr>
+      <tr>
+        <td>Emails going to spam</td>
+        <td>Complete domain authentication (DKIM, SPF records)</td>
+      </tr>
+      <tr>
+        <td>Rate limit exceeded</td>
+        <td>Check your SendGrid plan limits; upgrade if needed</td>
+      </tr>
+    </table>
+
+    <h3>Inbound Emails Not Working</h3>
+    <table>
+      <tr>
+        <th>Problem</th>
+        <th>Solution</th>
+      </tr>
+      <tr>
+        <td>MX record not found</td>
+        <td>Verify MX record with: <code>dig MX mail.yourdomain.com</code></td>
+      </tr>
+      <tr>
+        <td>Webhook not receiving</td>
+        <td>Check the Destination URL is correct in Inbound Parse settings</td>
+      </tr>
+      <tr>
+        <td>Parsing errors</td>
+        <td>Check Firebase function logs for error messages</td>
+      </tr>
+    </table>
+
+    <div class="info">
+      <strong>Need Help?</strong> Check the <a href="https://docs.sendgrid.com" target="_blank">SendGrid Documentation</a> or contact your system administrator.
+    </div>
+  </div>
+
+  <p style="text-align: center; margin-top: 40px; color: #666;">
+    <a href="javascript:window.close()" class="back-link">Close This Guide</a>
+  </p>
+</body>
+</html>

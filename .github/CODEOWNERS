@@ -1,0 +1,20 @@
+# CODEOWNERS file for HelpDesk project
+# These owners will be the default owners for everything in the repo
+
+# Global owners - will be requested for review when someone opens a pull request
+* @LarryAnglin
+
+# Frontend specific files
+/react/ @LarryAnglin
+*.tsx @LarryAnglin
+*.ts @LarryAnglin
+
+# Backend specific files
+/functions/ @LarryAnglin
+
+# Configuration files
+firebase.json @LarryAnglin
+.github/ @LarryAnglin
+
+# Documentation
+*.md @LarryAnglin

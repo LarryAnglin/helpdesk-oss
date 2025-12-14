@@ -1,0 +1,31 @@
+{
+  "valid": {
+    "title": "E2E Test Ticket",
+    "description": "This is a test ticket created by Cypress E2E test suite",
+    "priority": "Medium",
+    "location": "RCL",
+    "computer": "LAPTOP-E2E-001",
+    "name": "E2E Test User",
+    "email": "e2e.test@example.com",
+    "phone": "555-0123",
+    "errorMessage": "Test error message",
+    "stepsToReproduce": "1. Open application\n2. Click button\n3. Error appears"
+  },
+  "highPriority": {
+    "title": "High Priority E2E Test",
+    "description": "Critical issue affecting business operations",
+    "priority": "High",
+    "location": "RCL-EH",
+    "computer": "SERVER-PROD-01",
+    "name": "Critical User",
+    "email": "critical@example.com",
+    "impact": "All users unable to process transactions, losing $1000/hour"
+  },
+  "minimal": {
+    "title": "Minimal Test Ticket",
+    "description": "Basic ticket with only required fields",
+    "computer": "TEST-PC",
+    "name": "Test User",
+    "email": "test@example.com"
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "development": {
+    "code_quality": {
+      "always_lint": true,
+      "always_compile": true,
+      "auto_format": true,
+      "run_tests": true,
+      "fix_linting_errors": true,
+      "deployment": {
+        "auto_deploy_on_success": true,
+        "deployment_environments": ["staging", "production"],
+        "require_confirmation_for_production": true
+      },
+  "workflow": {
+    "pre_commit_hooks": {
+      "lint_staged_files": true,
+      "run_tests": true,
+      "check_for_secrets": true,
+      "validate_commit_message": true,
+      "format_code": true
+    },
+    "branch_protection": {
+      "require_pull_requests": true,
+      "require_status_checks": true,
+      "no_direct_main_commits": true
+    },
+    "notifications": {
+      "build_success": false,
+      "build_failure": true,
+      "deployment_status": true,
+      "security_alerts": true
+    }
+  },
+  "maintenance": {
+    "dependency_updates": {
+      "auto_update_minor": true,
+      "auto_update_patch": true,
+      "manual_approval_major": true,
+      "update_frequency": "weekly"
+    },
+    "code_health": {
+      "technical_debt_monitoring": true,
+      "code_complexity_analysis": true,
+      "duplicate_code_detection": true,
+      "maintainability_index": true
+    }
+  }
+    },
+    "version_control": {
+      "auto_commit_on_successful_compile": true,
+      "commit_message_format": "feat: {description} - automated commit",
+      "include_file_changes_in_commit": true,
+      "push_after_commit": false,
+      "branch_strategy": "feature_branches",
+      "versioning": {
+        "auto_increment_on_build": true,
+        "increment_type": "minor",
+        "version_file_location": "package.json",
+        "backup_version_files": ["version.json", "src/version.ts"],
+        "update_footer_version": true
+      }
+    },
+    "ui_design": {
+      "prioritize_visual_design": true,
+      "ui_framework_preferences": ["tailwind", "material-ui", "chakra-ui"],
+      "responsive_design": true,
+      "global_footer": {
+        "required": true,
+        "include_version_number": true,
+        "auto_increment_minor_version": true,
+        "version_format": "v{major}.{minor}.{patch}",
+        "footer_placement": "bottom",
+        "footer_style": "minimal_unobtrusive"
+      },
+      "accessibility": {
+        "wcag_compliance": "AA",
+        "minimum_contrast_ratio": 4.5,
+        "check_color_contrast": true,
+        "include_alt_text": true,
+        "keyboard_navigation": true,
+        "screen_reader_support": true
+      },
+      "design_principles": [
+        "clean_modern_aesthetics",
+        "intuitive_user_experience",
+        "consistent_spacing",
+        "clear_typography"
+      ]
+    },
+    "problem_solving": {
+      "never_comment_out_functionality": true,
+      "ask_before_removing_features": true,
+      "debug_thoroughly": true,
+      "provide_alternative_solutions": true,
+      "explain_technical_decisions": true
+    }
+  },
+  "communication": {
+    "verbosity": "detailed",
+    "explain_changes": true,
+    "ask_for_confirmation": {
+      "major_refactors": true,
+      "breaking_changes": true,
+      "feature_removal": true,
+      "production_deployments": true
+    },
+    "progress_updates": true
+  },
+  "additional_preferences": {
+    "file_management": {
+      "auto_cleanup": {
+        "remove_unused_imports": true,
+        "remove_dead_code": true,
+        "organize_imports": true,
+        "clean_build_artifacts": true
+      },
+      "backup_strategy": {
+        "create_backups_before_major_changes": true,
+        "backup_location": ".backups/",
+        "retention_days": 30
+      }
+    },
+    "error_handling": {
+      "comprehensive_error_handling": true,
+      "user_friendly_error_messages": true,
+      "error_logging": true,
+      "graceful_degradation": true,
+      "never_silent_failures": true
+    },
+    "performance": {
+      "optimize_for_performance": true,
+      "bundle_size_awareness": true,
+      "lazy_loading": true,
+      "image_optimization": true,
+      "tree_shaking": true,
+      "code_splitting": true,
+      "cache_optimization": true
+    },
+    "security": {
+      "scan_for_vulnerabilities": true,
+      "sanitize_inputs": true,
+      "use_secure_defaults": true,
+      "environment_variable_validation": true,
+      "never_commit_secrets": true,
+      "gitignore_enforcement": {
+        "always_ignore": [
+          ".env*",
+          "*.key",
+          "*.pem",
+          "*.p12",
+          "*.pfx",
+          "secrets/",
+          "config/local.json",
+          ".aws/",
+          ".ssh/",
+          "node_modules/",
+          "dist/",
+          "build/",
+          ".DS_Store",
+          "Thumbs.db",
+          "*.log",
+          "coverage/",
+          ".nyc_output/",
+          "*.tmp",
+          "*.temp"
+        ],
+        "warn_on_sensitive_files": true,
+        "auto_create_gitignore": true
+      },
+      "dependency_security": {
+        "audit_on_install": true,
+        "block_known_vulnerabilities": true,
+        "update_vulnerable_packages": true
+      }
+    },
+    "documentation": {
+      "generate_inline_docs": true,
+      "update_readme": true,
+      "api_documentation": true,
+      "code_comments_for_complex_logic": true
+    },
+    "testing": {
+      "write_unit_tests": true,
+      "integration_tests": true,
+      "test_coverage_minimum": 80,
+      "run_tests_before_commit": true
+    },
+    "code_style": {
+      "use_prettier": true,
+      "use_eslint": true,
+      "consistent_naming_conventions": true,
+      "max_line_length": 100,
+      "prefer_functional_programming": false,
+      "typescript_strict_mode": true,
+      "file_naming": {
+        "components": "PascalCase",
+        "utilities": "camelCase",
+        "constants": "SCREAMING_SNAKE_CASE",
+        "files": "kebab-case"
+      },
+      "import_organization": {
+        "group_imports": true,
+        "separate_third_party": true,
+        "absolute_paths_preferred": true
+      }
+    },
+    "project_structure": {
+      "maintain_clean_architecture": true,
+      "separate_concerns": true,
+      "use_design_patterns": true,
+      "modular_components": true
+    }
+  },
+  "environment_specific": {
+    "local_development": {
+      "hot_reload": true,
+      "source_maps": true,
+      "verbose_logging": true
+    },
+    "staging": {
+      "simulate_production": true,
+      "performance_monitoring": true
+    },
+    "production": {
+      "minify_assets": true,
+      "enable_caching": true,
+      "error_tracking": true,
+      "performance_monitoring": true
+    }
+  },
+  "integrations": {
+    "preferred_tools": {
+      "package_manager": "npm",
+      "bundler": "vite",
+      "css_framework": "tailwind",
+      "state_management": "zustand",
+      "testing_framework": "vitest",
+      "linting": "eslint"
+    },
+    "deployment_platforms": ["vercel", "netlify", "aws"],
+    "monitoring": ["sentry", "datadog", "new_relic"]
+  }
+}

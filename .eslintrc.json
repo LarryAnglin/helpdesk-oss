@@ -1,0 +1,25 @@
+{
+  "extends": [
+    "next/core-web-vitals"
+  ],
+  "plugins": [],
+  "rules": {
+    "react/display-name": "off",
+    "react/no-unescaped-entities": "off"
+  },
+  "ignorePatterns": ["**/*.test.tsx", "**/*.test.ts", "**/setupTests.ts"],
+  "overrides": [
+    {
+      "files": ["**/*.test.tsx", "**/*.test.ts"],
+      "extends": ["plugin:testing-library/react"],
+      "plugins": ["testing-library"],
+      "rules": {
+        "testing-library/await-async-query": "error",
+        "testing-library/no-await-sync-query": "error",
+        "testing-library/no-debugging-utils": "warn",
+        "testing-library/no-dom-import": "off",
+        "testing-library/no-wait-for-multiple-assertions": "warn"
+      }
+    }
+  ]
+}

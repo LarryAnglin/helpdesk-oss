@@ -1,0 +1,89 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Function to check if user is an admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+    
+    function isTech() {
+      return request.auth != null && 
+             (request.auth.token.role == 'tech' || request.auth.token.role == 'admin');
+    }
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // File validation functions (using correct variable names)
+    function isValidImageFile(res) {
+      return res.contentType.matches('image/.*');
+    }
+    
+    function isValidLogoSize(res) {
+      return res.size <= 5 * 1024 * 1024; // 5MB limit
+    }
+    
+    function isValidLogoType(res) {
+      return res.contentType in ['image/jpeg', 'image/png', 'image/svg+xml'];
+    }
+    
+  // Allow access to resized images in small/medium/large folders within ticket folders
+           match /tickets/{ticketId}/thumbs/{fileName} {
+             allow read: if true;
+           }
+           
+           match /tickets/{ticketId}/medium/{fileName} {
+             allow read: if true;
+           }
+           
+           match /tickets/{ticketId}/large/{fileName} {
+             allow read: if true;
+          }
+     
+    // By default, deny all read and write operations
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // TEMPORARY DEBUG: Allow all operations on settings folder for testing
+    match /settings/{fileName} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Ticket attachments - specific permissions based on ticket access
+    match /tickets/{ticketId}/{fileName} {
+      // Allow read access to authenticated users
+      allow read: if isAuthenticated();
+      
+      // Allow write access when creating or updating objects
+      allow create, update: if isAuthenticated();
+      
+      // Allow delete operations only for admins and techs
+      allow delete: if isTech() || isAdmin();
+    }
+    
+    // Allow access to resized images in small/medium/large folders within ticket folders
+    match /tickets/{ticketId}/small/{fileName} {
+      allow read: if isAuthenticated();
+    }
+    
+    match /tickets/{ticketId}/medium/{fileName} {
+      allow read: if isAuthenticated();
+    }
+    
+    match /tickets/{ticketId}/large/{fileName} {
+      allow read: if isAuthenticated();
+    }
+    
+    // Company logo uploads - Authentication required
+    match /company-logos/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && 
+                     isValidImageFile(request.resource) && 
+                     isValidLogoSize(request.resource) &&
+                     isValidLogoType(request.resource);
+      allow delete: if isAdmin() || isTech();
+    }
+  }
+}

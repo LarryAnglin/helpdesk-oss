@@ -1,0 +1,49 @@
+{
+  "name": "helpdesk-root",
+  "version": "1.0.0",
+  "description": "Help Desk Ticketing System",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:functions && npm run test:react",
+    "test:watch": "concurrently \"npm run test:functions:watch\" \"npm run test:react:watch\"",
+    "test:coverage": "npm run test:functions:coverage && npm run test:react:coverage && npm run test:coverage:merge",
+    "test:react": "cd react && npm run test",
+    "test:react:watch": "cd react && npm run test:watch",
+    "test:react:coverage": "cd react && npm run test:coverage",
+    "test:functions": "cd functions && npm run test",
+    "test:functions:watch": "cd functions && npm run test:watch",
+    "test:functions:coverage": "cd functions && npm run test:coverage",
+    "test:coverage:merge": "node scripts/merge-coverage.js",
+    "e2e": "cd react && npm run e2e",
+    "e2e:headless": "cd react && npm run e2e:headless",
+    "dev": "cd react && npm run dev",
+    "dev:functions": "cd functions && npm run serve",
+    "dev:all": "concurrently \"npm run dev:functions\" \"npm run dev\"",
+    "build": "npm run build:functions && npm run build:react",
+    "build:functions": "cd functions && npm run build",
+    "build:react": "cd react && npm run build",
+    "preview": "cd react && npm run preview",
+    "lint": "npm run lint:functions && npm run lint:react",
+    "lint:functions": "cd functions && npm run lint",
+    "lint:react": "cd react && npm run lint",
+    "functions": "cd functions && npm run serve",
+    "emulators:start": "firebase emulators:start",
+    "deploy": "./scripts/deploy-react.sh",
+    "install:all": "npm install && cd react && npm install && cd ../functions && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LarryAnglin/HelpDesk.git"
+  },
+  "keywords": [
+    "helpdesk",
+    "ticketing",
+    "react",
+    "firebase"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Form SMS Mockup</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 32px;
+        }
+        .page-title {
+            font-size: 24px;
+            font-weight: 500;
+            color: #1976d2;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 24px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .text-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .text-field:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+        }
+        .textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        .select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            box-sizing: border-box;
+        }
+        .sms-section {
+            margin-top: 32px;
+            padding: 24px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .sms-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 16px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            accent-color: #1976d2;
+        }
+        .checkbox-label {
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+        }
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        .alert {
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 32px;
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1565c0;
+        }
+        .alert strong {
+            font-weight: 600;
+        }
+        .btn-submit {
+            background: #1976d2;
+            color: white;
+            padding: 12px 32px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 32px;
+        }
+        .annotation {
+            position: absolute;
+            background: red;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        .arrow {
+            position: absolute;
+            border: solid red;
+            border-width: 0 3px 3px 0;
+            display: inline-block;
+            padding: 6px;
+            transform: rotate(45deg);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">Create New Support Ticket</h1>
+        
+        <form>
+            <div class="form-group">
+                <label for="subject">Subject *</label>
+                <input type="text" id="subject" class="text-field" placeholder="Brief description of the issue" value="Login Issues with Help Desk Portal">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description *</label>
+                <textarea id="description" class="text-field textarea" placeholder="Detailed description of the issue">Users are unable to log into the help desk portal. Getting "Invalid credentials" error even with correct username and password. This started happening this morning around 9 AM.</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select id="priority" class="select">
+                    <option value="Normal">Normal</option>
+                    <option value="High" selected>High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            
+            <!-- SMS Updates Section - Secondary CTA -->
+            <div class="sms-section">
+                <!-- Annotation for Secondary CTA -->
+                <div class="annotation" style="top: 20px; right: 20px;">2. Secondary CTA: Per-ticket SMS consent</div>
+                <div class="arrow" style="top: 40px; right: 70px; transform: rotate(-135deg);"></div>
+                
+                <h3 class="sms-title">📱 SMS Updates</h3>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="sms-updates" class="checkbox" checked>
+                    <label for="sms-updates" class="checkbox-label">I want to receive SMS updates for this ticket</label>
+                </div>
+                <div class="helper-text">
+                    You will receive SMS notifications about ticket status changes. 
+                    Reply START to the SMS you receive to confirm subscription. Message and data rates may apply.
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-submit">Create Ticket</button>
+        </form>
+    </div>
+
+    <!-- Additional annotations -->
+    <div class="annotation" style="bottom: 200px; left: 50px;">SMS checkbox only visible when globally enabled</div>
+    <div class="arrow" style="bottom: 180px; left: 100px; transform: rotate(45deg);"></div>
+    
+    <div class="annotation" style="bottom: 120px; right: 50px;">Clear disclosure about START confirmation required</div>
+    <div class="arrow" style="bottom: 100px; right: 100px; transform: rotate(-135deg);"></div>
+</body>
+</html>
