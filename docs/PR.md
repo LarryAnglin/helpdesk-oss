@@ -11,7 +11,7 @@ Creating a Pull Request - Step by Step
   # After you run:
   git push -u origin feature/your-feature-name
 
-  1. Go to your repository: https://github.com/LarryAnglin/HelpDesk
+  1. Go to your repository: https://github.com/LarryAnglin/helpdesk-oss
   2. Look for the yellow banner at the top that says:
   feature/your-feature-name had recent pushes less than a minute ago
   [Compare & pull request]
@@ -19,7 +19,7 @@ Creating a Pull Request - Step by Step
 
   Method 2: From the Pull Requests Tab
 
-  1. Go to your repository: https://github.com/LarryAnglin/HelpDesk
+  1. Go to your repository: https://github.com/LarryAnglin/helpdesk-oss
   2. Click the "Pull requests" tab (near the top, next to "Code")
   3. Click the green "New pull request" button
   4. Select your branches:
@@ -29,7 +29,7 @@ Creating a Pull Request - Step by Step
 
   Method 3: From Your Branch Page
 
-  1. Go to: https://github.com/LarryAnglin/HelpDesk
+  1. Go to: https://github.com/LarryAnglin/helpdesk-oss
   2. Click the branch dropdown (shows "main" by default)
   3. Select your branch feature/your-feature-name
   4. Click "Contribute" → "Open pull request"
@@ -146,7 +146,7 @@ Creating a Pull Request - Step by Step
 
   # 2. Terminal shows:
   remote: Create a pull request for 'feature/add-export' on GitHub by visiting:
-  remote: https://github.com/LarryAnglin/HelpDesk/pull/new/feature/add-export
+  remote: https://github.com/LarryAnglin/helpdesk-oss/pull/new/feature/add-export
 
   # 3. Click that link OR go to GitHub and click the yellow banner
 

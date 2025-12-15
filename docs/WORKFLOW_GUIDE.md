@@ -32,7 +32,7 @@ cd /Users/larryanglin/Projects/HelpDesk
 
 ### Configure Branch Protection
 
-1. Go to https://github.com/LarryAnglin/HelpDesk/settings/branches
+1. Go to https://github.com/LarryAnglin/helpdesk-oss/settings/branches
 2. Add protection rules for `main` and `develop` branches
 3. See `BRANCH_PROTECTION_SETUP.md` for detailed settings
 
@@ -110,7 +110,7 @@ After pushing, GitHub will show a banner:
 - Click **"Compare & pull request"**
 
 Or manually:
-1. Go to https://github.com/LarryAnglin/HelpDesk
+1. Go to https://github.com/LarryAnglin/helpdesk-oss
 2. Click **"Pull requests"**
 3. Click **"New pull request"**
 
@@ -212,7 +212,7 @@ git pull origin develop
 # Do this on GitHub:
 ```
 
-1. Go to https://github.com/LarryAnglin/HelpDesk
+1. Go to https://github.com/LarryAnglin/helpdesk-oss
 2. Click **"New pull request"**
 3. Base: `main` ← Compare: `develop`
 4. Title: "Release: v1.2.0 - User Export Feature"
@@ -379,7 +379,7 @@ firebase hosting:channel:list
 
 ### Monitor GitHub Actions
 
-1. Go to https://github.com/LarryAnglin/HelpDesk/actions
+1. Go to https://github.com/LarryAnglin/helpdesk-oss/actions
 2. Click on the latest workflow
 3. Watch real-time logs
 
