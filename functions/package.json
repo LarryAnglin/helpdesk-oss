@@ -21,7 +21,7 @@
     "@aws-sdk/client-ses": "^3.947.0",
     "@aws-sdk/client-sns": "^3.947.0",
     "@google/generative-ai": "^0.24.1",
-    "@sendgrid/inbound-mail-parser": "^8.0.0",
+    "@sendgrid/inbound-mail-parser": "^6.3.0",
     "@sendgrid/mail": "^8.1.6",
     "algoliasearch": "4.20.0",
     "axios": "^1.10.0",
@@ -36,7 +36,7 @@
     "googleapis": "^118.0.0",
     "json2csv": "^6.0.0-alpha.2",
     "mailparser": "^3.9.0",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^7.0.11",
     "pdfkit": "^0.17.1",
     "stripe": "^18.3.0",
     "twilio": "^5.4.0"
