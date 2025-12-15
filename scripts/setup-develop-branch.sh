@@ -42,6 +42,6 @@ echo -e "${GREEN}✅ Merging to develop will deploy to staging${NC}"
 echo -e "${GREEN}✅ Merging to main will deploy to production${NC}"
 
 echo -e "\n${BLUE}Next steps:${NC}"
-echo "1. Go to https://github.com/LarryAnglin/HelpDesk/settings/branches"
+echo "1. Go to https://github.com/LarryAnglin/helpdesk-oss/settings/branches"
 echo "2. Add branch protection rules as described in BRANCH_PROTECTION_SETUP.md"
 echo "3. Create your first feature branch: git checkout -b feature/my-feature"

@@ -33,7 +33,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LarryAnglin/HelpDesk.git"
+    "url": "git+https://github.com/LarryAnglin/helpdesk-oss.git"
   },
   "keywords": [
     "helpdesk",

@@ -37,8 +37,11 @@
 
   Optional Settings (Leave as Default):
 
-  8. Users collection: Leave empty9. Templates collection: Leave empty10. Firestore TTL type: Never11. Firestore TTL value: Leave empty12. TLS Options:
-  Leave empty
+  8. Users collection: Leave empty
+  9. Templates collection: Leave empty
+  10. Firestore TTL type: Never
+  11. Firestore TTL value: Leave empty
+  12. TLS Options: Leave empty
 
   Getting Your SMTP Credentials:
 

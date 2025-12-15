@@ -41,10 +41,10 @@ git push -u origin feature/your-feature-name
 - **PR Preview**: Check PR comments (https://your-project-id--pr-NUMBER.web.app)
 
 ### GitHub Pages
-- **Repository**: https://github.com/LarryAnglin/HelpDesk
-- **Actions**: https://github.com/LarryAnglin/HelpDesk/actions
-- **Pull Requests**: https://github.com/LarryAnglin/HelpDesk/pulls
-- **Settings**: https://github.com/LarryAnglin/HelpDesk/settings
+- **Repository**: https://github.com/LarryAnglin/helpdesk-oss
+- **Actions**: https://github.com/LarryAnglin/helpdesk-oss/actions
+- **Pull Requests**: https://github.com/LarryAnglin/helpdesk-oss/pulls
+- **Settings**: https://github.com/LarryAnglin/helpdesk-oss/settings
 
 ## 🌲 Branch Structure
 ```

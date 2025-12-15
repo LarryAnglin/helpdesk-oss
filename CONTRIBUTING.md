@@ -12,7 +12,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 Before submitting a bug report:
 
-1. Check the [existing issues](https://github.com/LarryAnglin/HelpDesk/issues) to avoid duplicates
+1. Check the [existing issues](https://github.com/LarryAnglin/helpdesk-oss/issues) to avoid duplicates
 2. Use the latest version of the code
 3. Collect relevant information (error messages, screenshots, steps to reproduce)
 
@@ -198,7 +198,7 @@ HelpDesk/
 ## Getting Help
 
 - Check the [documentation](docs/)
-- Search [existing issues](https://github.com/LarryAnglin/HelpDesk/issues)
+- Search [existing issues](https://github.com/LarryAnglin/helpdesk-oss/issues)
 - Open a new issue with your question
 - Email: support@anglinai.com
 
