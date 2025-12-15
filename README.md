@@ -72,8 +72,8 @@ HelpDesk was built by a developer who needed a customizable, self-hosted solutio
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YourUsername/HelpDesk.git
-   cd HelpDesk
+   git clone https://github.com/LarryAnglin/helpdesk-oss.git
+   cd helpdesk-oss
    ```
 
 2. **Install dependencies**
@@ -193,18 +193,19 @@ docker-compose up -d
 
 ### Cloud Run
 
-See `docs/DEPLOYMENT.md` for Cloud Run deployment instructions.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for Cloud Run deployment instructions.
 
 ## Documentation
 
-Comprehensive documentation is available in the `/docs` directory:
+Documentation is available in the `/docs` directory:
 
-- [Setup Guide](docs/SETUP.md)
-- [Firebase Configuration](docs/FIREBASE_SETUP.md)
-- [Email Configuration](docs/EMAIL_SETUP.md)
+- [Quick Start Guide](QUICKSTART.md)
+- [Firebase Setup](docs/FIREBASE_SETUP.md)
+- [Email Configuration](docs/firebase-email-setup.md)
+- [Algolia Search Setup](docs/ALGOLIA_SEARCH.md)
 - [AI Self-Help System](docs/AI_SELF_HELP_SYSTEM.md)
-- [API Reference](docs/API.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Deployment Guide](docs/DEPLOY.md)
+- [Docker Setup](docs/DOCKER.md)
 
 ## Services
 
